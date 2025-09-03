@@ -10,16 +10,24 @@ const config = {
 };
 
 module.exports = async function handler(req, res) {
+  console.log('🚀 Transcribe API called:', {
+    method: req.method,
+    url: req.url,
+    timestamp: new Date().toISOString()
+  });
+
   // CORS 헤더 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
+    console.log('✅ OPTIONS request handled');
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
+    console.log('❌ Invalid method:', req.method);
     return res.status(405).json({ 
       error: { 
         message: 'Method not allowed',
@@ -30,6 +38,13 @@ module.exports = async function handler(req, res) {
 
   try {
     const API_KEY = process.env.GROQ_API_KEY;
+    console.log('🔑 API Key check:', API_KEY ? 'Present' : 'Missing');
+    console.log('📊 Environment variables:', {
+      GROQ_API_KEY: API_KEY ? `${API_KEY.substring(0, 8)}...` : 'undefined',
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL: process.env.VERCEL,
+      VERCEL_ENV: process.env.VERCEL_ENV
+    });
     
     if (!API_KEY) {
       return res.status(500).json({
@@ -101,6 +116,7 @@ module.exports = async function handler(req, res) {
       if (fields.temperature) formData.append('temperature', getFieldValue(fields.temperature));
 
       // Groq API 호출
+      console.log('📡 Calling Groq API...');
       const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
         method: 'POST',
         headers: {
@@ -109,7 +125,14 @@ module.exports = async function handler(req, res) {
         body: formData
       });
 
+      console.log('📥 Groq API response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       const data = await response.json();
+      console.log('📋 Groq API data:', { success: response.ok, hasText: !!data.text });
       
       if (!response.ok) {
         return res.status(response.status).json({

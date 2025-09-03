@@ -21,6 +21,14 @@ export const transcriptionService = {
    * @returns {Promise<Object>} Transcription result
    */
   async transcribeAudio(file, options = {}, onProgress = null) {
+    console.log('🎯 TranscriptionService.transcribeAudio called:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      apiBaseUrl: API_BASE_URL,
+      nodeEnv: process.env.NODE_ENV,
+      options
+    });
 
     if (!file) {
       throw new TranscriptionError('No audio file provided', 400, 'MISSING_FILE');
@@ -157,10 +165,18 @@ export const transcriptionService = {
         });
 
         // Setup request
-        xhr.open('POST', `${API_BASE_URL}/transcribe`);
+        const requestUrl = `${API_BASE_URL}/transcribe`;
+        console.log('📡 Making request to:', requestUrl);
+        
+        xhr.open('POST', requestUrl);
         xhr.timeout = 300000; // 5 minutes timeout
         
         // Send request
+        console.log('📤 Sending formData:', {
+          fileSize: formData.get('file')?.size || 'unknown',
+          model: formData.get('model'),
+          responseFormat: formData.get('response_format')
+        });
         xhr.send(formData);
       });
       
