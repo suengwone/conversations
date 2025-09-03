@@ -1,5 +1,7 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://api.groq.com/openai/v1';
-const API_KEY = process.env.REACT_APP_GROQ_API_KEY;
+// Vercel API 엔드포인트 사용 (개발/배포 환경에 따라 자동 감지)
+const API_BASE_URL = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:3000/api'
+  : '/api';
 
 class TranscriptionError extends Error {
   constructor(message, status, code) {
@@ -19,13 +21,6 @@ export const transcriptionService = {
    * @returns {Promise<Object>} Transcription result
    */
   async transcribeAudio(file, options = {}, onProgress = null) {
-    if (!API_KEY) {
-      throw new TranscriptionError(
-        'Groq API key is not configured. Please set REACT_APP_GROQ_API_KEY in your environment variables.',
-        400,
-        'MISSING_API_KEY'
-      );
-    }
 
     if (!file) {
       throw new TranscriptionError('No audio file provided', 400, 'MISSING_FILE');
@@ -148,8 +143,7 @@ export const transcriptionService = {
         });
 
         // Setup request
-        xhr.open('POST', `${API_BASE_URL}/audio/transcriptions`);
-        xhr.setRequestHeader('Authorization', `Bearer ${API_KEY}`);
+        xhr.open('POST', `${API_BASE_URL}/transcribe`);
         xhr.timeout = 300000; // 5 minutes timeout
         
         // Send request

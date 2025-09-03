@@ -1,5 +1,7 @@
-const API_BASE_URL = process.env.REACT_APP_GROQ_CHAT_URL || 'https://api.groq.com/openai/v1/chat/completions';
-const API_KEY = process.env.REACT_APP_GROQ_API_KEY;
+// Vercel API 엔드포인트 사용
+const API_BASE_URL = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:3000/api'
+  : '/api';
 
 class AnalysisError extends Error {
   constructor(message, status, code) {
@@ -19,44 +21,29 @@ export const aiAnalysisService = {
    */
   async callAI(prompt, options = {}) {
     console.log('🤖 AI Analysis Service - callAI 시작');
-    console.log('API_KEY 확인:', API_KEY ? 'API 키 설정됨' : 'API 키 없음');
     console.log('API_BASE_URL:', API_BASE_URL);
-    
-    if (!API_KEY) {
-      console.error('❌ API 키가 설정되지 않음');
-      throw new AnalysisError(
-        'Groq API key is not configured. Please set REACT_APP_GROQ_API_KEY in your environment variables.',
-        400,
-        'MISSING_API_KEY'
-      );
-    }
 
     const requestBody = {
-      model: options.model || 'llama-3.1-8b-instant',
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: options.temperature || 0.7,
-      max_tokens: options.max_tokens || 4000,
-      top_p: options.top_p || 0.9,
-      stream: false
+      prompt,
+      options: {
+        model: options.model || 'llama-3.1-8b-instant',
+        temperature: options.temperature || 0.7,
+        max_tokens: options.max_tokens || 4000,
+        top_p: options.top_p || 0.9
+      }
     };
 
     console.log('📤 API 요청 데이터:', {
-      url: API_BASE_URL,
-      model: requestBody.model,
+      url: `${API_BASE_URL}/analyze`,
+      model: requestBody.options.model,
       promptLength: prompt.length,
-      temperature: requestBody.temperature
+      temperature: requestBody.options.temperature
     });
 
     try {
-      const response = await fetch(API_BASE_URL, {
+      const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody)
@@ -86,12 +73,12 @@ export const aiAnalysisService = {
 
       const data = await response.json();
       console.log('✅ API 성공 응답:', {
-        choices: data.choices?.length,
+        hasResponse: !!data.response,
         usage: data.usage,
         model: data.model
       });
       
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      if (!data.response) {
         throw new AnalysisError(
           'Invalid response format from AI API',
           500,
@@ -99,7 +86,7 @@ export const aiAnalysisService = {
         );
       }
 
-      return data.choices[0].message.content.trim();
+      return data.response.trim();
       
     } catch (error) {
       if (error instanceof AnalysisError) {
