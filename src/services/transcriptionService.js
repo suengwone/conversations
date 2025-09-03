@@ -34,11 +34,11 @@ export const transcriptionService = {
       throw new TranscriptionError('No audio file provided', 400, 'MISSING_FILE');
     }
 
-    // Validate file size (25MB limit for Groq Whisper API)
-    const maxSize = 25 * 1024 * 1024; // 25MB
+    // Validate file size (4MB limit for Vercel Hobby plan)
+    const maxSize = 4 * 1024 * 1024; // 4MB
     if (file.size > maxSize) {
       throw new TranscriptionError(
-        `File too large. Maximum size is 25MB, got ${(file.size / 1024 / 1024).toFixed(1)}MB`,
+        `File too large. Maximum size is 4MB for free hosting, got ${(file.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file.`,
         400,
         'FILE_TOO_LARGE'
       );
@@ -121,7 +121,7 @@ export const transcriptionService = {
               
               // HTTP 413 에러에 대한 특별 처리
               if (xhr.status === 413) {
-                errorMessage = 'File too large for upload. Please use a smaller audio file (max 25MB).';
+                errorMessage = 'File too large for upload. Please use a smaller audio file (max 4MB for free hosting).';
               }
               
               reject(new TranscriptionError(
@@ -134,7 +134,7 @@ export const transcriptionService = {
               
               // HTTP 413 에러에 대한 기본 메시지
               if (xhr.status === 413) {
-                errorMessage = 'File too large for upload. Please use a smaller audio file.';
+                errorMessage = 'File too large for upload. Please use a smaller audio file (max 4MB).';
               }
               
               reject(new TranscriptionError(
