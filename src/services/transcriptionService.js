@@ -34,11 +34,11 @@ export const transcriptionService = {
       throw new TranscriptionError('No audio file provided', 400, 'MISSING_FILE');
     }
 
-    // Validate file size (4MB limit for Vercel Hobby plan)
-    const maxSize = 4 * 1024 * 1024; // 4MB
+    // Validate file size (15MB limit)
+    const maxSize = 15 * 1024 * 1024; // 15MB
     if (file.size > maxSize) {
       throw new TranscriptionError(
-        `File too large. Maximum size is 4MB for free hosting, got ${(file.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file.`,
+        `File too large. Maximum size is 15MB, got ${(file.size / 1024 / 1024).toFixed(1)}MB. Please use a smaller audio file.`,
         400,
         'FILE_TOO_LARGE'
       );
@@ -121,7 +121,7 @@ export const transcriptionService = {
               
               // HTTP 413 에러에 대한 특별 처리
               if (xhr.status === 413) {
-                errorMessage = 'File too large for upload. Please use a smaller audio file (max 4MB for free hosting).';
+                errorMessage = 'File too large for upload. Please use a smaller audio file (max 15MB).';
               }
               
               reject(new TranscriptionError(
@@ -134,7 +134,7 @@ export const transcriptionService = {
               
               // HTTP 413 에러에 대한 기본 메시지
               if (xhr.status === 413) {
-                errorMessage = 'File too large for upload. Please use a smaller audio file (max 4MB).';
+                errorMessage = 'File too large for upload. Please use a smaller audio file (max 15MB).';
               }
               
               reject(new TranscriptionError(
@@ -149,7 +149,7 @@ export const transcriptionService = {
         // Handle network errors
         xhr.addEventListener('error', () => {
           reject(new TranscriptionError(
-            'Network error occurred during transcription',
+            'Network error occurred during transcription. Please check your internet connection.',
             0,
             'NETWORK_ERROR'
           ));
@@ -158,7 +158,7 @@ export const transcriptionService = {
         // Handle timeout
         xhr.addEventListener('timeout', () => {
           reject(new TranscriptionError(
-            'Request timeout. The audio file might be too long or the server is busy.',
+            'Request timeout after 5 minutes. The audio file might be too long or the server is busy. Please try with a shorter audio file.',
             0,
             'TIMEOUT'
           ));

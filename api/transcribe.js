@@ -55,9 +55,9 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // formidable 설정으로 파일 처리 (4MB limit for Vercel Hobby)
+    // formidable 설정으로 파일 처리 (15MB limit)
     const form = new IncomingForm({
-      maxFileSize: 4 * 1024 * 1024, // 4MB
+      maxFileSize: 15 * 1024 * 1024, // 15MB
       maxFields: 10,
       multiples: false,
     });
@@ -88,10 +88,10 @@ module.exports = async function handler(req, res) {
     }
 
     // 파일 크기 검증
-    if (audioFile.size > 4 * 1024 * 1024) {
+    if (audioFile.size > 15 * 1024 * 1024) {
       return res.status(413).json({
         error: {
-          message: `File too large. Maximum size is 4MB for free hosting, got ${(audioFile.size / 1024 / 1024).toFixed(1)}MB`,
+          message: `File too large. Maximum size is 15MB, got ${(audioFile.size / 1024 / 1024).toFixed(1)}MB`,
           code: 'FILE_TOO_LARGE'
         }
       });
@@ -162,7 +162,7 @@ module.exports = async function handler(req, res) {
     if (error.message === 'FILE_TOO_LARGE') {
       return res.status(413).json({
         error: {
-          message: 'File too large. Maximum size is 4MB for free hosting.',
+          message: 'File too large. Maximum size is 15MB.',
           code: 'FILE_TOO_LARGE'
         }
       });

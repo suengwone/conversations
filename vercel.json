@@ -1,7 +1,20 @@
 {
   "functions": {
+    "api/transcribe.js": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
+    "api/analyze.js": {
+      "maxDuration": 60,
+      "memory": 512
+    },
     "api/**/*.js": {
-      "maxDuration": 300
+      "maxDuration": 30
+    }
+  },
+  "api": {
+    "bodyParser": {
+      "sizeLimit": "15mb"
     }
   },
   "rewrites": [
