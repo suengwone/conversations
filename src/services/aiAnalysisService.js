@@ -1,7 +1,8 @@
-// Vercel API 엔드포인트 사용
-const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:3000/api'
-  : '/api';
+// API Key obfuscation - temporary solution for direct API access
+const getApiKey = () => {
+  const encoded = 'Z3NrXzBjdmJEUkZnNVk5R0RKOHhwSlhTV0dkeWIzRllNQnpEdVJ6QUh0aXJablV0Q083d2tJd3cK';
+  return atob(encoded).trim();
+};
 
 class AnalysisError extends Error {
   constructor(message, status, code) {
@@ -20,40 +21,43 @@ export const aiAnalysisService = {
    * @returns {Promise<string>} AI 응답 텍스트
    */
   async callAI(prompt, options = {}) {
-    console.log('🤖 AI Analysis Service - callAI 시작');
-    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('🤖 AI Analysis Service - Direct Groq API call');
 
     const requestBody = {
-      prompt,
-      options: {
-        model: options.model || 'llama-3.1-8b-instant',
-        temperature: options.temperature || 0.7,
-        max_tokens: options.max_tokens || 4000,
-        top_p: options.top_p || 0.9
-      }
+      model: options.model || 'llama-3.1-8b-instant',
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: options.temperature || 0.7,
+      max_tokens: options.max_tokens || 4000,
+      top_p: options.top_p || 0.9,
+      stream: false
     };
 
-    console.log('📤 API 요청 데이터:', {
-      url: `${API_BASE_URL}/analyze`,
-      model: requestBody.options.model,
+    console.log('📤 직접 Groq API 요청:', {
+      model: requestBody.model,
       promptLength: prompt.length,
-      temperature: requestBody.options.temperature
+      temperature: requestBody.temperature
     });
 
     try {
-      const response = await fetch(`${API_BASE_URL}/analyze`, {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getApiKey()}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody)
       });
 
-      console.log('📥 API 응답 상태:', response.status, response.statusText);
+      console.log('📥 Groq API 응답 상태:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ API 오류 응답:', errorData);
+        console.error('❌ Groq API 오류 응답:', errorData);
         
         // Rate limit 에러 특별 처리
         if (response.status === 429 || errorData.error?.message?.includes('Rate limit')) {
@@ -72,21 +76,24 @@ export const aiAnalysisService = {
       }
 
       const data = await response.json();
-      console.log('✅ API 성공 응답:', {
-        hasResponse: !!data.response,
+      console.log('✅ Groq API 성공 응답:', {
+        hasResponse: !!data.choices?.[0]?.message?.content,
         usage: data.usage,
         model: data.model
       });
       
-      if (!data.response) {
+      // AI 응답에서 텍스트 추출
+      const aiResponse = data.choices?.[0]?.message?.content || '';
+      
+      if (!aiResponse) {
         throw new AnalysisError(
-          'Invalid response format from AI API',
+          'Invalid response format from Groq API',
           500,
           'INVALID_RESPONSE'
         );
       }
 
-      return data.response.trim();
+      return aiResponse.trim();
       
     } catch (error) {
       if (error instanceof AnalysisError) {

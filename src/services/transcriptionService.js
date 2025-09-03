@@ -1,7 +1,8 @@
-// Vercel API 엔드포인트 사용 (개발/배포 환경에 따라 자동 감지)
-const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:3000/api'
-  : '/api';
+// API Key obfuscation - temporary solution for direct API access
+const getApiKey = () => {
+  const encoded = 'Z3NrXzBjdmJEUkZnNVk5R0RKOHhwSlhTV0dkeWIzRllNQnpEdVJ6QUh0aXJablV0Q083d2tJd3cK';
+  return atob(encoded).trim();
+};
 
 class TranscriptionError extends Error {
   constructor(message, status, code) {
@@ -25,7 +26,7 @@ export const transcriptionService = {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
-      apiBaseUrl: API_BASE_URL,
+      apiBaseUrl: process.env.API_BASE_URL,
       nodeEnv: process.env.NODE_ENV,
       options
     });
@@ -34,11 +35,11 @@ export const transcriptionService = {
       throw new TranscriptionError('No audio file provided', 400, 'MISSING_FILE');
     }
 
-    // Validate file size (10MB limit - practical limit for Vercel)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    // Validate file size (25MB limit - Groq API limit)
+    const maxSize = 25 * 1024 * 1024; // 25MB
     if (file.size > maxSize) {
       throw new TranscriptionError(
-        `File too large. Maximum size is 10MB, got ${(file.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file or use a shorter recording.`,
+        `File too large. Maximum size is 25MB, got ${(file.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file or use a shorter recording.`,
         400,
         'FILE_TOO_LARGE'
       );
@@ -87,7 +88,9 @@ export const transcriptionService = {
     }
 
     try {
-      // Create XMLHttpRequest for progress tracking
+      // Direct call to Groq API
+      const apiUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
+      
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         
@@ -121,7 +124,7 @@ export const transcriptionService = {
               
               // HTTP 413 에러에 대한 특별 처리
               if (xhr.status === 413) {
-                errorMessage = 'File too large for upload. The server has a size limit. Please try compressing your audio file or using a shorter recording (recommended: under 10MB).';
+                errorMessage = 'File too large for upload. The maximum file size is 25MB. Please compress your audio file or use a shorter recording.';
               }
               
               reject(new TranscriptionError(
@@ -134,7 +137,7 @@ export const transcriptionService = {
               
               // HTTP 413 에러에 대한 기본 메시지
               if (xhr.status === 413) {
-                errorMessage = 'File too large for upload. Please try a smaller audio file (recommended: under 10MB).';
+                errorMessage = 'File too large for upload. Please try a smaller audio file (recommended: under 25MB).';
               }
               
               reject(new TranscriptionError(
@@ -165,14 +168,14 @@ export const transcriptionService = {
         });
 
         // Setup request
-        const requestUrl = `${API_BASE_URL}/transcribe`;
-        console.log('📡 Making request to:', requestUrl);
+        console.log('📡 Making direct request to Groq API');
         
-        xhr.open('POST', requestUrl);
+        xhr.open('POST', apiUrl);
         xhr.timeout = 300000; // 5 minutes timeout
+        xhr.setRequestHeader('Authorization', `Bearer ${getApiKey()}`);
         
         // Send request
-        console.log('📤 Sending formData:', {
+        console.log('📤 Sending formData to Groq:', {
           fileSize: formData.get('file')?.size || 'unknown',
           model: formData.get('model'),
           responseFormat: formData.get('response_format')
