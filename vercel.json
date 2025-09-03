@@ -4,6 +4,14 @@
       "maxDuration": 300,
       "memory": 1024
     },
+    "api/transcribe-from-blob.js": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
+    "api/blob-upload-token.js": {
+      "maxDuration": 60,
+      "memory": 512
+    },
     "api/analyze.js": {
       "maxDuration": 60,
       "memory": 512
