@@ -34,11 +34,11 @@ export const transcriptionService = {
       throw new TranscriptionError('No audio file provided', 400, 'MISSING_FILE');
     }
 
-    // Validate file size (15MB limit)
-    const maxSize = 15 * 1024 * 1024; // 15MB
+    // Validate file size (10MB limit - practical limit for Vercel)
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       throw new TranscriptionError(
-        `File too large. Maximum size is 15MB, got ${(file.size / 1024 / 1024).toFixed(1)}MB. Please use a smaller audio file.`,
+        `File too large. Maximum size is 10MB, got ${(file.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file or use a shorter recording.`,
         400,
         'FILE_TOO_LARGE'
       );
@@ -121,7 +121,7 @@ export const transcriptionService = {
               
               // HTTP 413 에러에 대한 특별 처리
               if (xhr.status === 413) {
-                errorMessage = 'File too large for upload. Please use a smaller audio file (max 15MB).';
+                errorMessage = 'File too large for upload. The server has a size limit. Please try compressing your audio file or using a shorter recording (recommended: under 5MB).';
               }
               
               reject(new TranscriptionError(
@@ -134,7 +134,7 @@ export const transcriptionService = {
               
               // HTTP 413 에러에 대한 기본 메시지
               if (xhr.status === 413) {
-                errorMessage = 'File too large for upload. Please use a smaller audio file (max 15MB).';
+                errorMessage = 'File too large for upload. Please try a smaller audio file (recommended: under 5MB).';
               }
               
               reject(new TranscriptionError(
@@ -231,6 +231,21 @@ export const transcriptionService = {
   estimateTranscriptionTime(audioDuration) {
     // Rough estimate: Whisper processes about 1 minute of audio in 2-5 seconds
     return Math.ceil(audioDuration * 0.1) + 10; // Add 10 seconds buffer
+  },
+
+  /**
+   * Get audio compression tips for users
+   * @returns {Array} Array of compression tips
+   */
+  getCompressionTips() {
+    return [
+      '🎵 Convert to MP3 format for better compression',
+      '📉 Reduce bit rate to 64-128 kbps for voice recordings',
+      '⏱️ Consider splitting long recordings into shorter segments',
+      '🔧 Use audio editing software like Audacity (free)',
+      '📱 Record at lower quality on mobile devices',
+      '💡 Remove silence at the beginning and end of recordings'
+    ];
   }
 };
 

@@ -56,9 +56,9 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // formidable 설정으로 파일 처리 (15MB limit)
+    // formidable 설정으로 파일 처리 (10MB limit)
     const form = new IncomingForm({
-      maxFileSize: 15 * 1024 * 1024, // 15MB
+      maxFileSize: 10 * 1024 * 1024, // 10MB
       maxFields: 10,
       multiples: false,
     });
@@ -89,10 +89,10 @@ module.exports = async function handler(req, res) {
     }
 
     // 파일 크기 검증
-    if (audioFile.size > 15 * 1024 * 1024) {
+    if (audioFile.size > 10 * 1024 * 1024) {
       return res.status(413).json({
         error: {
-          message: `File too large. Maximum size is 15MB, got ${(audioFile.size / 1024 / 1024).toFixed(1)}MB`,
+          message: `File too large. Maximum size is 10MB, got ${(audioFile.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file.`,
           code: 'FILE_TOO_LARGE'
         }
       });
@@ -163,7 +163,7 @@ module.exports = async function handler(req, res) {
     if (error.message === 'FILE_TOO_LARGE') {
       return res.status(413).json({
         error: {
-          message: 'File too large. Maximum size is 15MB.',
+          message: 'File too large. Please use a smaller audio file (under 5MB recommended).',
           code: 'FILE_TOO_LARGE'
         }
       });
