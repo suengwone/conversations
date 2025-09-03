@@ -1,14 +1,14 @@
-import { IncomingForm } from 'formidable';
-import fs from 'fs';
+const { IncomingForm } = require('formidable');
+const fs = require('fs');
 
 // Vercel에서 body parser 비활성화
-export const config = {
+const config = {
   api: {
     bodyParser: false,
   },
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS 헤더 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -108,4 +108,6 @@ export default async function handler(req, res) {
       }
     });
   }
-}
+};
+
+module.exports.config = config;
