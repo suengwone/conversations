@@ -77,48 +77,22 @@ export const transcriptionService = {
       // Upload to Vercel Blob
       const uploadResponse = await fetch(`${API_BASE_URL}/blob-upload-token`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type
-        })
+        body: formData
       });
 
       if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}));
         throw new TranscriptionError(
-          'Failed to get upload token from server',
+          errorData.error?.message || 'Failed to upload file to blob storage',
           uploadResponse.status,
-          'UPLOAD_TOKEN_FAILED'
-        );
-      }
-
-      const { url, uploadUrl } = await uploadResponse.json();
-      
-      if (onProgress) {
-        onProgress(30); // Upload token received
-      }
-
-      // Upload file directly to Vercel Blob
-      const blobUploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type
-        }
-      });
-
-      if (!blobUploadResponse.ok) {
-        throw new TranscriptionError(
-          'Failed to upload file to blob storage',
-          blobUploadResponse.status,
           'BLOB_UPLOAD_FAILED'
         );
       }
 
+      const { url } = await uploadResponse.json();
+      
       if (onProgress) {
-        onProgress(60); // File uploaded to blob
+        onProgress(50); // File uploaded to blob
       }
 
       // Step 2: Process file from blob URL
