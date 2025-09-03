@@ -88,11 +88,11 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 파일 크기 검증
+    // 파일 크기 검증 (10MB 제한)
     if (audioFile.size > 10 * 1024 * 1024) {
       return res.status(413).json({
         error: {
-          message: `File too large. Maximum size is 10MB, got ${(audioFile.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file.`,
+          message: `File too large. Maximum size is 10MB, got ${(audioFile.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file or use a shorter recording.`,
           code: 'FILE_TOO_LARGE'
         }
       });

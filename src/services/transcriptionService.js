@@ -14,7 +14,7 @@ class TranscriptionError extends Error {
 
 export const transcriptionService = {
   /**
-   * Transcribe audio file using Groq Whisper API via Vercel Blob Storage
+   * Transcribe audio file using Groq Whisper API
    * @param {File} file - Audio file to transcribe
    * @param {Object} options - Transcription options
    * @param {Function} onProgress - Progress callback
@@ -34,11 +34,11 @@ export const transcriptionService = {
       throw new TranscriptionError('No audio file provided', 400, 'MISSING_FILE');
     }
 
-    // Validate file size (500MB limit with Vercel Blob)
-    const maxSize = 500 * 1024 * 1024; // 500MB
+    // Validate file size (10MB limit - practical limit for Vercel)
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       throw new TranscriptionError(
-        `File too large. Maximum size is 500MB, got ${(file.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file.`,
+        `File too large. Maximum size is 10MB, got ${(file.size / 1024 / 1024).toFixed(1)}MB. Please compress your audio file or use a shorter recording.`,
         400,
         'FILE_TOO_LARGE'
       );
@@ -63,77 +63,122 @@ export const transcriptionService = {
       );
     }
 
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('model', options.model || 'whisper-large-v3');
+    
+    // Optional parameters
+    if (options.language) {
+      formData.append('language', options.language);
+    }
+    
+    if (options.prompt) {
+      formData.append('prompt', options.prompt);
+    }
+    
+    if (options.response_format) {
+      formData.append('response_format', options.response_format);
+    } else {
+      formData.append('response_format', 'verbose_json'); // Default to verbose for timestamps
+    }
+    
+    if (options.temperature !== undefined) {
+      formData.append('temperature', options.temperature.toString());
+    }
+
     try {
-      // Step 1: Upload file to Vercel Blob Storage
-      console.log('📤 Uploading to Vercel Blob...');
-      
-      if (onProgress) {
-        onProgress(10); // Show initial progress
-      }
+      // Create XMLHttpRequest for progress tracking
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        // Progress tracking
+        if (onProgress) {
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const progress = (event.loaded / event.total) * 100;
+              onProgress(Math.round(progress));
+            }
+          });
+        }
 
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Upload to Vercel Blob
-      const uploadResponse = await fetch(`${API_BASE_URL}/blob-upload-token`, {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        throw new TranscriptionError(
-          errorData.error?.message || 'Failed to upload file to blob storage',
-          uploadResponse.status,
-          'BLOB_UPLOAD_FAILED'
-        );
-      }
-
-      const { url } = await uploadResponse.json();
-      
-      if (onProgress) {
-        onProgress(50); // File uploaded to blob
-      }
-
-      // Step 2: Process file from blob URL
-      console.log('📡 Processing file from blob URL...');
-      
-      const transcribeResponse = await fetch(`${API_BASE_URL}/transcribe-from-blob`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          blobUrl: url,
-          options: {
-            model: options.model || 'whisper-large-v3',
-            language: options.language,
-            prompt: options.prompt,
-            response_format: options.response_format || 'verbose_json',
-            temperature: options.temperature
+        // Handle response
+        xhr.addEventListener('load', () => {
+          if (xhr.status === 200) {
+            try {
+              const result = JSON.parse(xhr.responseText);
+              resolve(result);
+            } catch (parseError) {
+              reject(new TranscriptionError(
+                'Failed to parse API response',
+                xhr.status,
+                'PARSE_ERROR'
+              ));
+            }
+          } else {
+            try {
+              const errorData = JSON.parse(xhr.responseText);
+              let errorMessage = errorData.error?.message || 'Transcription failed';
+              
+              // HTTP 413 에러에 대한 특별 처리
+              if (xhr.status === 413) {
+                errorMessage = 'File too large for upload. The server has a size limit. Please try compressing your audio file or using a shorter recording (recommended: under 10MB).';
+              }
+              
+              reject(new TranscriptionError(
+                errorMessage,
+                xhr.status,
+                errorData.error?.code || 'API_ERROR'
+              ));
+            } catch {
+              let errorMessage = `HTTP ${xhr.status}: ${xhr.statusText}`;
+              
+              // HTTP 413 에러에 대한 기본 메시지
+              if (xhr.status === 413) {
+                errorMessage = 'File too large for upload. Please try a smaller audio file (recommended: under 10MB).';
+              }
+              
+              reject(new TranscriptionError(
+                errorMessage,
+                xhr.status,
+                'HTTP_ERROR'
+              ));
+            }
           }
-        })
+        });
+
+        // Handle network errors
+        xhr.addEventListener('error', () => {
+          reject(new TranscriptionError(
+            'Network error occurred during transcription. Please check your internet connection.',
+            0,
+            'NETWORK_ERROR'
+          ));
+        });
+
+        // Handle timeout
+        xhr.addEventListener('timeout', () => {
+          reject(new TranscriptionError(
+            'Request timeout after 5 minutes. The audio file might be too long or the server is busy. Please try with a shorter audio file.',
+            0,
+            'TIMEOUT'
+          ));
+        });
+
+        // Setup request
+        const requestUrl = `${API_BASE_URL}/transcribe`;
+        console.log('📡 Making request to:', requestUrl);
+        
+        xhr.open('POST', requestUrl);
+        xhr.timeout = 300000; // 5 minutes timeout
+        
+        // Send request
+        console.log('📤 Sending formData:', {
+          fileSize: formData.get('file')?.size || 'unknown',
+          model: formData.get('model'),
+          responseFormat: formData.get('response_format')
+        });
+        xhr.send(formData);
       });
-
-      if (onProgress) {
-        onProgress(90); // Transcription in progress
-      }
-
-      const data = await transcribeResponse.json();
-
-      if (!transcribeResponse.ok) {
-        throw new TranscriptionError(
-          data.error?.message || 'Transcription failed',
-          transcribeResponse.status,
-          data.error?.code || 'API_ERROR'
-        );
-      }
-
-      if (onProgress) {
-        onProgress(100); // Complete
-      }
-
-      return data;
       
     } catch (error) {
       if (error instanceof TranscriptionError) {
