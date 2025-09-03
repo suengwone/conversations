@@ -4,6 +4,11 @@
       "maxDuration": 300
     }
   },
+  "api": {
+    "bodyParser": {
+      "sizeLimit": "25mb"
+    }
+  },
   "rewrites": [
     {
       "source": "/((?!api/.*).*)",

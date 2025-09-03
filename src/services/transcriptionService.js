@@ -109,14 +109,28 @@ export const transcriptionService = {
           } else {
             try {
               const errorData = JSON.parse(xhr.responseText);
+              let errorMessage = errorData.error?.message || 'Transcription failed';
+              
+              // HTTP 413 에러에 대한 특별 처리
+              if (xhr.status === 413) {
+                errorMessage = 'File too large for upload. Please use a smaller audio file (max 25MB).';
+              }
+              
               reject(new TranscriptionError(
-                errorData.error?.message || 'Transcription failed',
+                errorMessage,
                 xhr.status,
                 errorData.error?.code || 'API_ERROR'
               ));
             } catch {
+              let errorMessage = `HTTP ${xhr.status}: ${xhr.statusText}`;
+              
+              // HTTP 413 에러에 대한 기본 메시지
+              if (xhr.status === 413) {
+                errorMessage = 'File too large for upload. Please use a smaller audio file.';
+              }
+              
               reject(new TranscriptionError(
-                `HTTP ${xhr.status}: ${xhr.statusText}`,
+                errorMessage,
                 xhr.status,
                 'HTTP_ERROR'
               ));
