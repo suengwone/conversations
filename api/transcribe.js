@@ -1,10 +1,11 @@
 const { IncomingForm } = require('formidable');
 const fs = require('fs');
 
-// Vercel에서 body parser 비활성화
+// Vercel에서 body parser 비활성화, 15MB limit 설정
 const config = {
   api: {
     bodyParser: false,
+    responseLimit: false
   },
   maxDuration: 300,
 };
