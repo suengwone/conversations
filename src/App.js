@@ -34,7 +34,6 @@ function App() {
     progress: analysisProgress,
     results: analysisResults,
     error: analysisError,
-    analysisType,
     analyzeAll,
     reset: resetAnalysis,
     getProgressInfo
@@ -464,8 +463,8 @@ function App() {
           <footer className="text-center py-6 text-gray-500 text-sm border-t border-gray-200 mt-12" role="contentinfo">
             <p>
               Powered by Groq Whisper API & LLaMA 3.1 | 
-              <a href="#" className="text-blue-600 hover:text-blue-800 ml-1 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">개인정보처리방침</a> | 
-              <a href="#" className="text-blue-600 hover:text-blue-800 ml-1 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded">이용약관</a>
+              <button type="button" className="text-blue-600 hover:text-blue-800 ml-1 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded bg-transparent border-none cursor-pointer">개인정보처리방침</button> | 
+              <button type="button" className="text-blue-600 hover:text-blue-800 ml-1 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded bg-transparent border-none cursor-pointer">이용약관</button>
             </p>
           </footer>
           

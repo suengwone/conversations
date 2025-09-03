@@ -133,7 +133,7 @@ const SummaryPanel = ({ summaryData, isLoading = false, onRegenerate = null }) =
                 <div className="space-y-2">
                   {console.log('📝 SummaryPanel - 불릿 포인트 처리, 원본:', summaryData.summary)}
                   {summaryData.summary.split('\n').filter(line => line.trim()).map((line, index) => {
-                    const cleanedLine = line.replace(/^[•\-\*]\s*/, '').trim();
+                    const cleanedLine = line.replace(/^[•\-*]\s*/, '').trim();
                     console.log(`📝 SummaryPanel - 라인 ${index}:`, line, '->', cleanedLine);
                     return cleanedLine ? (
                       <div key={index} className="flex items-start space-x-2">
